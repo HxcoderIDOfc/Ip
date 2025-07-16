@@ -42,8 +42,9 @@ async function startBot() {
 
   sock.ev.on('connection.update', async ({ connection, qr, lastDisconnect }) => {
     if (qr) {
-      await qrcode.toFile('./file/qr.jpg', qr, { width: 300 })
-      console.log('🔑 QR disimpan ke file/qr.jpg')
+  if (!fs.existsSync('./file')) fs.mkdirSync('./file') // <== Tambahkan ini
+  await qrcode.toFile('./file/qr.jpg', qr, { width: 300 })
+  console.log('🔑 QR disimpan ke file/qr.jpg')
     }
     if (connection === 'open') {
       console.log(`✅ ${config.botName} siap dipakai!`)
