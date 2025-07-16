@@ -15,7 +15,7 @@ const {
 const app = express()
 app.use(bodyParser.json())
 app.use(express.static('file'))
-app.use(express.static('views'))
+app.use(express.static('public'))
 
 const plugins = []
 const pluginDir = path.join(__dirname, 'plugins')
