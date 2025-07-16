@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Indoprime - QR WhatsApp</title>
+  <style>
+    * {
+      margin: 0; padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #0f172a;
+      color: #f1f5f9;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 1rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      font-size: 1rem;
+      color: #94a3b8;
+    }
+    img {
+      margin-top: 1.5rem;
+      width: 300px;
+      height: 300px;
+      object-fit: contain;
+      border-radius: 10px;
+      border: 2px solid #475569;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    }
+    .footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+  </style>
+  <script>
+    setInterval(() => {
+      document.querySelector('img').src = 'qr.jpg?reload=' + new Date().getTime()
+    }, 3000)
+  </script>
+</head>
+<body>
+  <h1>Scan QR WhatsApp</h1>
+  <p>Buka WhatsApp di HP kamu, lalu arahkan ke QR ini untuk login</p>
+  <img src="qr.jpg" alt="QR Code">
+  <div class="footer">© Indoprime Bot - Powered by Baileys.js</div>
+</body>
+</html>
