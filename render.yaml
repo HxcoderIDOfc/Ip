@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: wa-otp-bot
+    env: node
+    region: singapore
+    plan: free
+    autoDeploy: true
+    rootDir: .
+    buildCommand: npm install
+    startCommand: npm start

@@ -1,0 +1,10 @@
+{
+  "port": 3000,
+  "botName": "IndoprimeBot",
+  "ownerName": "Bos Indoprime",
+  "ownerNumber": "6283148450932",
+  "apikeys": {
+    "indoprimeFetchKey": "Apikey72726262",
+    "indoprimeSecureKey": "IndoProtect9911"
+  }
+}
