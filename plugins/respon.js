@@ -1,66 +1,73 @@
-const fs = require('fs')
-const fetch = require('node-fetch')
+const fetch = require('node-fetch');
+const config = require('../config.json');
 
-// Ambil config
-const config = JSON.parse(fs.readFileSync('./config.json', 'utf-8'))
+const limitUser = new Map();
+const LIMIT = 5;
+const RESET_MS = 60 * 60 * 1000; // 1 jam
 
-// Batasan chat per user
-const limit = {}
-const MAX_CHATS = 5
-const RESET_INTERVAL_MS = 60 * 60 * 1000 // Reset tiap jam
-
-// Reset otomatis tiap interval
-setInterval(() => {
-  for (const user in limit) {
-    limit[user] = 0
-  }
-}, RESET_INTERVAL_MS)
+setInterval(() => limitUser.clear(), RESET_MS);
 
 module.exports = {
   name: 'respon',
   run: async ({ sock, msg, from, text }) => {
-    if (!limit[from]) limit[from] = 0
-    limit[from]++
+    if (!text || from.endsWith('@g.us')) return;
 
-    if (limit[from] > MAX_CHATS) {
-      await sock.sendMessage(from, {
-        text: '🚫 Anda telah mencapai batas interaksi. Coba lagi nanti ya.'
-      })
-      return
+    const now = Date.now();
+    const user = limitUser.get(from) || { count: 0, last: now };
+
+    // Reset jika sudah lewat waktunya
+    if (now - user.last > RESET_MS) {
+      user.count = 0;
     }
 
-    // Khusus trigger tentang "indoprime"
-    if (text.includes('indoprime')) {
-      await sock.sendMessage(from, {
-        text: '📣 Saya PrimeAi, asisten pribadi Bos Indoprime. Ingin tahu lebih lanjut tentang layanan kami? Tanyakan aja!'
-      })
-      return
+    if (user.count >= LIMIT) {
+      if (user.count === LIMIT) {
+        await sock.sendMessage(from, {
+          text: '🙏 Kak, untuk menjaga kualitas layanan, kami batasi chat sementara. Yuk lanjut ngobrol nanti ya!'
+        });
+      }
+      user.count++;
+      limitUser.set(from, user);
+      return;
     }
 
-    // Kirim pertanyaan ke AI jika bukan pertanyaan khusus
+    user.count++;
+    user.last = now;
+    limitUser.set(from, user);
+
+    // Deteksi pertanyaan penting
+    const penting = /(indoprime|register|saldo|daftar|akun|bot|nama kamu siapa|bisa bantu|cek|info|layanan)/i;
+    if (!penting.test(text)) {
+      await sock.sendMessage(from, {
+        text: 'Hai kak 👋 ada yang bisa PrimeAi bantu? Tanyakan apapun tentang layanan Indoprime ya!'
+      });
+      return;
+    }
+
     try {
-      const response = await fetch('https://webhook.indoprime.my.id/ai.php', {
+      const res = await fetch('https://webhook.indoprime.my.id/ai.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-ApiKey': config.indoprimeFetchKey
         },
         body: JSON.stringify({ prompt: text })
-      })
+      });
 
-      const result = await response.json()
-      if (result.status && result.output) {
-        await sock.sendMessage(from, { text: `🧠 ${result.output}` })
+      const json = await res.json();
+
+      if (json?.status && json.output) {
+        await sock.sendMessage(from, { text: json.output });
       } else {
         await sock.sendMessage(from, {
-          text: '⚠️ Maaf, saya tidak bisa menjawab pertanyaan itu saat ini.'
-        })
+          text: '🤖 Maaf kak, pertanyaannya belum bisa aku jawab dengan sempurna. Boleh dicoba dengan kalimat lain?'
+        });
       }
-    } catch (err) {
-      console.error('[AI Error]', err)
+    } catch (e) {
+      console.error('[❌ ERROR AI]', e);
       await sock.sendMessage(from, {
-        text: '❌ Terjadi kesalahan saat menghubungi AI.'
-      })
+        text: '🙏 Saat ini aku lagi kesulitan akses jawaban. Tapi kamu bisa coba sebentar lagi ya, makasih atas pengertiannya 🤝'
+      });
     }
   }
-        }
+};
