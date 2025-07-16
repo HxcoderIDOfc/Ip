@@ -2,7 +2,7 @@ const fetch = require('node-fetch')
 const config = require('../config.json')
 
 const userCooldown = new Map()
-const COOLDOWN_MS = 5 * 1000 // 5 detik
+const COOLDOWN_MS = 5 * 1000 // 5 detik cooldown biar gak nyepam
 
 const greetingDetector = /^(hay+|hi+|halo+|pagi|malam|siang|kak+|bro+|tes|assalamualaikum)/i
 
@@ -29,39 +29,34 @@ module.exports = {
     const last = userCooldown.get(from) || 0
     const isGreeting = greetingDetector.test(lowerText)
 
-    // Anti-spam: Kecuali greeting, tahan user yang spam
+    // Anti-spam kecuali greeting
     if (!isGreeting && now - last < COOLDOWN_MS) return
     userCooldown.set(from, now)
 
-    // Greeting langsung AI biar hangat
+    // Langsung ke AI kalau greeting
     if (isGreeting) {
       return await forwardToAI(sock, from, text, msg)
     }
 
-    // Cek balasan manual dulu
+    // Manual check dulu
     for (const item of manualReplies) {
       if (item.keywords.some(k => lowerText.includes(k))) {
         return await sock.sendMessage(from, { text: item.reply }, { quoted: msg })
       }
     }
 
-    // Kalau ga cocok, baru panggil AI
+    // Kalau tidak ditemukan di manual, kirim ke AI
     await forwardToAI(sock, from, text, msg)
   }
 }
 
+// Panggil AI pakai GET (hemat & cepat)
 async function forwardToAI(sock, from, prompt, msg) {
   try {
-    const res = await fetch('https://webhook.indoprime.my.id/ai.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-ApiKey': config.indoprimeFetchKey
-      },
-      body: JSON.stringify({ prompt })
-    })
-
+    const url = `https://webhook.indoprime.my.id/ai.php?apikey=${encodeURIComponent(config.indoprimeFetchKey)}&prompt=${encodeURIComponent(prompt)}`
+    const res = await fetch(url)
     const json = await res.json()
+
     const reply = json.output?.trim() || 'Maaf kak, saya belum bisa jawab itu sekarang 😔'
     await sock.sendMessage(from, { text: reply }, { quoted: msg })
   } catch (err) {
@@ -70,4 +65,4 @@ async function forwardToAI(sock, from, prompt, msg) {
       text: '⚠️ Maaf kak, sistem kami sedang sibuk. Coba lagi sebentar ya 🙏'
     }, { quoted: msg })
   }
-  }
+               }
