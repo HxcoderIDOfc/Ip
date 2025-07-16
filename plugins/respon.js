@@ -3,7 +3,7 @@ const config = require('../config.json')
 
 // Simpan waktu terakhir tiap user buat anti-spam
 const userCooldown = new Map()
-const COOLDOWN_MS = 60 * 1000 // 1 menit
+const COOLDOWN_MS = 5 * 1000 // 1 menit
 
 // Manual reply rules
 const manualReplies = [
