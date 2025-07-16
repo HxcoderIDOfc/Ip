@@ -1,11 +1,13 @@
 const fetch = require('node-fetch')
 const config = require('../config.json')
 
-// Simpan waktu terakhir tiap user buat anti-spam
 const userCooldown = new Map()
-const COOLDOWN_MS = 5 * 1000 // 1 menit
+const COOLDOWN_MS = 5 * 1000
 
-// Manual reply rules
+// Regex untuk mendeteksi sapaan ringan
+const greetingDetector = /^(hay+|hi+|halo+|pagi|malam|siang|kak+|bro+|tes|assalamualaikum)/i
+
+// Jawaban manual
 const manualReplies = [
   {
     keywords: ['saldo', 'saldo saya', 'cek saldo'],
@@ -21,11 +23,7 @@ const manualReplies = [
   },
   {
     keywords: ['kamu siapa', 'siapa kamu', 'nama kamu'],
-    reply: 'Saya PrimeAi, asisten pribadi dari Indoprime 🤖 Siap bantu 24 jam kak!'
-  },
-  {
-    keywords: ['halo', 'hallo', 'hi', 'hay', 'assalamualaikum'],
-    reply: 'Halo kak! 👋 Saya di sini kalau kakak butuh bantuan ya~'
+    reply: 'Saya PrimeAi, asisten pribadi Indoprime 🤖 Siap bantu kakak kapan pun!'
   },
   {
     keywords: ['terima kasih', 'makasih', 'thanks', 'thank you'],
@@ -37,7 +35,7 @@ const manualReplies = [
   },
   {
     keywords: ['apa itu indoprime', 'tentang indoprime'],
-    reply: 'Indoprime adalah layanan profesional digital modern yang dibangun oleh Kak Hendra untuk bantu banyak orang 💼'
+    reply: 'Indoprime adalah layanan digital modern yang dibangun oleh Kak Hendra untuk bantu banyak orang 💼'
   },
   {
     keywords: ['jam kerja', 'jam buka'],
@@ -50,41 +48,52 @@ module.exports = {
   run: async ({ sock, msg, from, text }) => {
     if (!text || msg.key.fromMe || from.endsWith('@g.us')) return
 
+    const lowerText = text.toLowerCase()
     const now = Date.now()
     const last = userCooldown.get(from) || 0
-    if (now - last < COOLDOWN_MS) return
+
+    const isGreeting = greetingDetector.test(lowerText)
+
+    if (!isGreeting && now - last < COOLDOWN_MS) return // anti-spam hanya kalau bukan greeting
     userCooldown.set(from, now)
 
-    const lowerText = text.toLowerCase()
+    // Kalau greeting, langsung ke AI biar terkesan interaktif
+    if (isGreeting) {
+      return await forwardToAI(sock, from, text, msg)
+    }
 
-    // Coba cocokan manual reply dulu
+    // Coba balasan manual
     for (const item of manualReplies) {
       if (item.keywords.some(k => lowerText.includes(k))) {
-        await sock.sendMessage(from, { text: item.reply })
+        await sock.sendMessage(from, { text: item.reply }, { quoted: msg })
         return
       }
     }
 
-    // Kalau tidak cocok, baru kirim ke AI
-    try {
-      const res = await fetch('https://webhook.indoprime.my.id/ai.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-ApiKey': config.indoprimeFetchKey
-        },
-        body: JSON.stringify({ prompt: text })
-      })
-
-      const json = await res.json()
-      const reply = json.output || 'Maaf kak, saya belum bisa jawab itu sekarang 😔'
-
-      await sock.sendMessage(from, { text: reply })
-    } catch (err) {
-      console.error('[AI ERROR]', err)
-      await sock.sendMessage(from, {
-        text: '⚠️ Maaf kak, sistem kami sedang mengalami kendala. Coba lagi sebentar ya.'
-      })
-    }
+    // Kalau gak cocok manual, panggil AI
+    await forwardToAI(sock, from, text, msg)
   }
-      }
+}
+
+async function forwardToAI(sock, from, prompt, msg) {
+  try {
+    const res = await fetch('https://webhook.indoprime.my.id/ai.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-ApiKey': config.indoprimeFetchKey
+      },
+      body: JSON.stringify({ prompt })
+    })
+
+    const json = await res.json()
+    const reply = json.output?.trim() || 'Maaf kak, saya belum bisa jawab itu sekarang 😔'
+
+    await sock.sendMessage(from, { text: reply }, { quoted: msg })
+  } catch (err) {
+    console.error('[AI ERROR]', err)
+    await sock.sendMessage(from, {
+      text: '⚠️ Maaf kak, sistem sedang sibuk. Coba lagi sebentar ya 🙏'
+    }, { quoted: msg })
+  }
+  }
