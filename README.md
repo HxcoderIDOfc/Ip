@@ -42,3 +42,5 @@ Setelah Worker pertama kali ter-deploy, tambahkan tiga secret di atas ke Worker 
 ## Catatan ChatGPT
 
 Server ini menggunakan Streamable HTTP MCP melalui `/mcp`. Dukungan aksi tulis/modify pada custom MCP di ChatGPT bergantung pada paket dan fitur Developer Mode yang tersedia. Sampai akses full MCP write tersedia, workflow GitHub -> Cloudflare auto-deploy tetap dapat dipakai untuk perubahan yang dibuat lewat repo.
+
+<!-- deploy trigger: 2026-08-07 -->
