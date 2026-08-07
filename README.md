@@ -1,32 +1,44 @@
-# Iprime Chat Connector
+# Iprime Cloudflare MCP
 
-Cloudflare Worker connector untuk menghubungkan frontend Chat AI ke API OpenAI-compatible tanpa mengekspos API key ke browser.
+Remote MCP server yang berjalan di Cloudflare Workers dan memberi AI/MCP client akses terbatas untuk mengelola Cloudflare Workers.
 
-## Endpoint
+## Tools
 
-- `GET /` atau `GET /health` — cek status connector
-- `POST /api/chat` — meneruskan payload ke `${AI_BASE_URL}/v1/chat/completions`
+- `list_workers` — melihat daftar Worker pada akun Cloudflare.
+- `get_worker` — membaca source/content Worker yang sudah ter-deploy.
+- `deploy_worker` — membuat atau mengganti Worker ES-module dengan source JavaScript baru.
 
-## Secret Cloudflare
+Endpoint MCP: `/mcp`
 
-Tambahkan di Cloudflare Worker:
+Health check: `/health`
 
-- `AI_BASE_URL`
-- `AI_API_KEY`
+## Secret yang dibutuhkan
 
-Contoh `AI_BASE_URL`:
+Simpan sebagai Cloudflare Worker secrets, jangan commit ke GitHub:
 
 ```text
-https://api.example.com
+CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_API_TOKEN
+MCP_ACCESS_TOKEN
 ```
 
-## Auto deploy dari GitHub
+`CLOUDFLARE_API_TOKEN` minimal perlu izin Workers Scripts Read + Workers Scripts Write. Cloudflare merekomendasikan API Token dibanding Global API Key.
 
-Workflow `.github/workflows/deploy.yml` otomatis deploy setiap push ke `main`.
+`MCP_ACCESS_TOKEN` melindungi endpoint `/mcp` dengan `Authorization: Bearer ...`. Jangan biarkan MCP yang dapat melakukan deploy terbuka untuk publik.
 
-Tambahkan GitHub Actions Secrets:
+## Deploy awal
 
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
+Repo ini memiliki GitHub Actions `.github/workflows/deploy.yml`. Tambahkan GitHub repository secrets:
 
-Jangan simpan API key asli di source code atau commit GitHub.
+```text
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+```
+
+Push ke `main` akan menjalankan `wrangler deploy`.
+
+Setelah Worker pertama kali ter-deploy, tambahkan tiga secret di atas ke Worker `iprime-cloudflare-mcp`.
+
+## Catatan ChatGPT
+
+Server ini menggunakan Streamable HTTP MCP melalui `/mcp`. Dukungan aksi tulis/modify pada custom MCP di ChatGPT bergantung pada paket dan fitur Developer Mode yang tersedia. Sampai akses full MCP write tersedia, workflow GitHub -> Cloudflare auto-deploy tetap dapat dipakai untuk perubahan yang dibuat lewat repo.
